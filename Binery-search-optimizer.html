@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Machine-Learning (ML) Enhanced Guessing Game</title>
+
+  <style>
+    /* --- Visuals (unchanged style language, minor additions) --- */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: white;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.4em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .subtitle {
+      text-align: center;
+      margin-bottom: 28px;
+      opacity: 0.9;
+      font-size: 1.05em;
+    }
+
+    .game-area {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 1.8em;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+      justify-content: center;
+    }
+
+    button {
+      background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: bold;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    button:hover { transform: translateY(-2px); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .start-btn { background: linear-gradient(45deg, #4ecdc4, #44a08d); }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    input[type="number"], select {
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #333;
+      font-size: 1em;
+      width: 110px;
+      text-align: center;
+    }
+
+    select { width: 180px; }
+
+    .question-area {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 18px;
+      border-radius: 15px;
+      margin-bottom: 16px;
+      text-align: center;
+      font-size: 1.15em;
+    }
+
+    .ml-prediction {
+      background: linear-gradient(45deg, #feca57, #ff9ff3);
+      color: #333;
+      padding: 14px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+    }
+
+    .pattern-display {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    .pattern-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #feca57;
+    }
+
+    .history {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 10px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .ok { background: linear-gradient(45deg, #4ecdc4, #44a08d); }
+    .bad { background: linear-gradient(45deg, #ff4757, #c44569); }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🤖 Machine-Learning (ML) Enhanced Guessing Game</h1>
+    <p class="subtitle">
+      I learn your choice patterns and try to guess with fewer questions than pure mathematics would predict.
+    </p>
+
+    <!-- --- Statistics Bar --- -->
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-number" id="gamesPlayed">0</div>
+        <div>Games Played</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="mathQuestions">0</div>
+        <div>Math Predicts (binary search)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="mlQuestions">0</div>
+        <div>Questions Used</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="savedQuestions">0</div>
+        <div>Questions Saved</div>
+      </div>
+    </div>
+
+    <!-- --- Game Controls --- -->
+    <div class="game-area">
+      <div class="input-group">
+        <label>Range:</label>
+        <input type="number" id="minRange" value="1" placeholder="Min" />
+        <label>to</label>
+        <input type="number" id="maxRange" value="100" placeholder="Max" />
+
+        <!-- Risk level: how many questions we "save" before switching to ML prediction -->
+        <label for="riskLevel">Risk Level:</label>
+        <select id="riskLevel" title="How aggressively to switch to ML prediction">
+          <option value="0">0 (No saving, pure math)</option>
+          <option value="1" selected>1 (Conservative)</option>
+          <option value="2">2 (Moderate)</option>
+          <option value="3">3 (Aggressive)</option>
+        </select>
+
+        <button class="start-btn" onclick="startGame()">Start New Game</button>
+      </div>
+
+      <div class="controls">
+        <button onclick="respondYes()" id="yesBtn" disabled>Yes</button>
+        <button onclick="respondNo()" id="noBtn" disabled>No</button>
+        <button onclick="confirmGuess()" id="confirmBtn" class="ok" disabled>Confirm Guess</button>
+        <button onclick="wrongGuess()" id="wrongBtn" class="bad" disabled>Wrong Guess</button>
+      </div>
+
+      <div class="question-area" id="questionArea">
+        Set your range, choose risk level, and click “Start New Game”.
+      </div>
+
+      <div class="ml-prediction" id="mlPrediction"></div>
+    </div>
+
+    <!-- --- Learned Patterns --- -->
+    <div class="pattern-display">
+      <div class="pattern-title">🧠 Learned Patterns:</div>
+      <div id="patternInfo">No patterns learned yet. Play a few games!</div>
+    </div>
+
+    <!-- --- History --- -->
+    <div class="history">
+      <h3>📊 Game History:</h3>
+      <div id="historyList">No games played yet.</div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Machine-Learning (ML) Guessing Game
+     * -----------------------------------
+     * Core ideas:
+     * 1) Ask standard binary-search questions *until* we decide to "save"
+     *    a configured number of questions (risk level). Then switch to an
+     *    ML-based prediction over remaining candidates.
+     * 2) Learn from the user's true number (whether we were correct or wrong):
+     *    - position within original range (bucketed into deciles)
+     *    - lower/upper half preference in the final narrowed range
+     *    - last digit, digit sum, parity (even or odd)
+     *    - slight sequential proximity to the previous round's answer
+     * 3) Persist patterns and history in localStorage for continuity.
+     */
+
+    class MLGuessingGame {
+      constructor() {
+        // --- long-lived knowledge the ML uses ---
+        this.patterns = {
+          // How often answers fall into deciles of the *original* range [min, max]
+          positionPreferences: {},
+
+          // Lower vs upper half preference in the *final narrowed* range
+          halfPreferences: { lower: 0, upper: 0 },
+
+          // Digital patterns: last digit frequency, digit sum frequency, parity
+          digitalPatterns: {
+            even: 0, // parity preference
+            odd: 0
+            // plus keys like "lastDigit_7": count
+            // and keys like "digitSum_10": count
+          },
+
+          // Sequential proximity: we will not store a big structure; we score candidates
+          // that are near the *previous* game's answer. The actual weight is applied at prediction time.
+
+          // How many questions we "save" before switching from math to ML (0..3 typical)
+          confidenceLevel: 1
+        };
+
+        // Per-session state
+        this.currentGame = null;
+        this.gameHistory = [];
+
+        // Load persisted knowledge/history if available
+        this.loadData();
+        this.updateHistory();
+        this.updatePatterns();
+        this.updateStats(); // initialize stat tiles
+      }
+
+      // --- game lifecycle ---
+
+      startGame(min, max, riskLevel) {
+        // sanitize inputs
+        if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) {
+          alert("Please provide a valid numeric range where minimum is less than maximum.");
+          return;
+        }
+
+        // store current risk in patterns (influences stopping rule)
+        this.patterns.confidenceLevel = Math.max(0, Math.min(3, Number(riskLevel) || 0));
+
+        this.currentGame = {
+          min,
+          max,
+          // size of original range
+          range: max - min + 1,
+          // optimal questions required by pure binary search
+          mathQuestionsNeeded: Math.ceil(Math.log2(max - min + 1)),
+          questionsAsked: 0,
+
+          currentMin: min,
+          currentMax: max,
+
+          // for diagnostics and learning
+          questionHistory: [],
+          started: Date.now(),
+
+          // set when we switch to ML so we can learn half preference inside that last window
+          finalRange: null,
+
+          // outcome fields set in finishGame
+          answer: null,
+          correct: null,
+          ended: null
+        };
+
+        // reflect on screen
+        this.setButtons({ yes: true, no: true, confirm: false, wrong: false });
+        this.updateStats();
+        this.askQuestion();
+        this.saveData();
+      }
+
+      askQuestion() {
+        if (!this.currentGame) return;
+
+        const g = this.currentGame;
+        const remainingRange = g.currentMax - g.currentMin + 1;
+
+        // compute how many questions we will "save" before switching to ML
+        const savedTarget = this.patterns.confidenceLevel; // 0..3
+        const questionsLeftBeforeML = g.mathQuestionsNeeded - savedTarget - g.questionsAsked;
+
+        // Stopping rules: if we saved enough or only one number remains, switch to ML prediction
+        if (remainingRange === 1 || questionsLeftBeforeML <= 0) {
+          this.makeFinalMLPrediction();
+          return;
+        }
+
+        // Standard binary-search question
+        const mid = Math.floor((g.currentMin + g.currentMax) / 2);
+
+        document.getElementById('questionArea').innerHTML =
+          `<strong>Question ${g.questionsAsked + 1}:</strong><br>
+           Is your number ≤ <b>${mid}</b>?<br>
+           <small>(Current remaining range: ${g.currentMin} – ${g.currentMax}, ${remainingRange} possibilities)<br>
+           Strategy: saving <b>${savedTarget}</b> question(s) before switching to ML.</small>`;
+
+        // enable question buttons, disable confirm/wrong
+        this.setButtons({ yes: true, no: true, confirm: false, wrong: false });
+        this.updateStats();
+      }
+
+      makeFinalMLPrediction() {
+        if (!this.currentGame) return;
+        const g = this.currentGame;
+
+        // Build list of remaining candidates
+        const candidates = [];
+        for (let x = g.currentMin; x <= g.currentMax; x++) candidates.push(x);
+
+        // Record the final narrowed window so we can learn half-preference later
+        g.finalRange = {
+          min: g.currentMin,
+          max: g.currentMax,
+          size: candidates.length
+        };
+
+        const prediction = this.predictNumber(candidates);
+
+        document.getElementById('questionArea').innerHTML =
+          `<strong>🎯 Final ML Prediction:</strong><br>
+           Based on learned patterns, I predict your number is: <strong>${prediction}</strong><br>
+           <small>Remaining possibilities: ${candidates.join(', ')}</small>`;
+
+        // Show explanation box
+        const saved = g.mathQuestionsNeeded - g.questionsAsked;
+        const riskLabel =
+          this.patterns.confidenceLevel === 0 ? 'None (pure binary search)' :
+          this.patterns.confidenceLevel === 1 ? 'Conservative' :
+          this.patterns.confidenceLevel === 2 ? 'Moderate' : 'Aggressive';
+
+        const mlDiv = document.getElementById('mlPrediction');
+        mlDiv.style.display = 'block';
+        mlDiv.innerHTML =
+          `🤖 Machine learning analysis: used <b>${g.questionsAsked}</b> question(s); saved <b>${saved}</b> question(s).<br>
+           Risk level: <b>${riskLabel}</b>.`;
+
+        // We are now in the "decision" phase: enable confirm or wrong
+        this.setButtons({ yes: false, no: false, confirm: true, wrong: true });
+        this.updateStats();
+      }
+
+      // --- ML scoring function over remaining candidates ---
+      predictNumber(candidates) {
+        if (candidates.length === 1) return candidates[0];
+
+        const g = this.currentGame;
+        const scores = Object.create(null);
+        for (const n of candidates) scores[n] = 0;
+
+        // 1) Position preference within original range: bucket into 10 deciles
+        const rangeSpan = g.max - g.min;
+        const decile = rangeSpan > 0 ? (n) => Math.floor(((n - g.min) / rangeSpan) * 10) : () => 0;
+        for (const n of candidates) {
+          const key = decile(n); // 0..9
+          const w = (this.patterns.positionPreferences[key] || 0);
+          // Strong-ish weight to amplify consistent biases
+          scores[n] += 3 * w;
+        }
+
+        // 2) Half preference inside the *current* narrowed range (psychological bias)
+        const midNow = (g.currentMin + g.currentMax) / 2;
+        for (const n of candidates) {
+          const lower = n < midNow;
+          const pref = lower ? this.patterns.halfPreferences.lower : this.patterns.halfPreferences.upper;
+          scores[n] += 4 * pref;
+        }
+
+        // 3) Digital patterns: last digit, digit sum, parity
+        for (const n of candidates) {
+          const last = n % 10;
+          const sum = n.toString().split('').reduce((acc, d) => acc + Number(d), 0);
+          scores[n] += 2 * (this.patterns.digitalPatterns[`lastDigit_${last}`] || 0);
+          scores[n] += 1 * (this.patterns.digitalPatterns[`digitSum_${sum}`] || 0);
+          scores[n] += 2 * (n % 2 === 0 ? (this.patterns.digitalPatterns.even || 0) : (this.patterns.digitalPatterns.odd || 0));
+        }
+
+        // 4) Sequential proximity to previous answer (mild effect)
+        if (this.gameHistory.length > 0) {
+          const lastAnswer = this.gameHistory[this.gameHistory.length - 1].answer;
+          for (const n of candidates) {
+            const diff = Math.abs(n - lastAnswer);
+            if (diff <= 5) scores[n] += 1; // very small nudge
+          }
+        }
+
+        // Choose best-scoring number; apply tie-breakers
+        let bestScore = -Infinity;
+        let best = [];
+        for (const n of candidates) {
+          const s = scores[n];
+          if (s > bestScore) { bestScore = s; best = [n]; }
+          else if (s === bestScore) { best.push(n); }
+        }
+
+        // If still tied, prefer the half with stronger global halfPreference
+        if (best.length > 1) {
+          const rangeMid = (g.currentMin + g.currentMax) / 2;
+          const lowerWins = this.patterns.halfPreferences.lower > this.patterns.halfPreferences.upper;
+          const chosenHalf = lowerWins ? best.filter(n => n < rangeMid) : best.filter(n => n >= rangeMid);
+          if (chosenHalf.length > 0) best = chosenHalf;
+        }
+
+        // Final tie-breaker: middle of that set (stable)
+        return best[Math.floor(best.length / 2)];
+      }
+
+      // --- user responses during questioning ---
+
+      respondYes() {
+        if (!this.currentGame) return;
+        const g = this.currentGame;
+        const mid = Math.floor((g.currentMin + g.currentMax) / 2);
+
+        g.currentMax = mid;               // user says "≤ mid"
+        g.questionsAsked++;
+        g.questionHistory.push({ question: `≤ ${mid}`, answer: 'Yes' });
+
+        this.askQuestion();
+        this.saveData();
+      }
+
+      respondNo() {
+        if (!this.currentGame) return;
+        const g = this.currentGame;
+        const mid = Math.floor((g.currentMin + g.currentMax) / 2);
+
+        g.currentMin = mid + 1;           // user says "> mid"
+        g.questionsAsked++;
+        g.questionHistory.push({ question: `≤ ${mid}`, answer: 'No' });
+
+        this.askQuestion();
+        this.saveData();
+      }
+
+      // --- decision phase actions ---
+
+      confirmGuess() {
+        if (!this.currentGame) return;
+        const predicted = this.predictNumber(this.getRemainingNumbers());
+        this.finishGame(predicted, true);
+      }
+
+      wrongGuess() {
+        if (!this.currentGame) return;
+
+        // Ask for the true hidden number (validate that it lies inside remaining window)
+        const g = this.currentGame;
+        const raw = prompt(`What was your number? (between ${g.currentMin} and ${g.currentMax})`);
+        const actual = Number(raw);
+
+        if (!Number.isInteger(actual) || actual < g.currentMin || actual > g.currentMax) {
+          alert("Please enter a valid integer within the displayed remaining range.");
+          return;
+        }
+
+        // Mark as incorrect guess but *still learn from the actual answer*
+        this.finishGame(actual, false);
+      }
+
+      // --- finalize a round, learn patterns, persist, update UI ---
+
+      getRemainingNumbers() {
+        const g = this.currentGame;
+        const out = [];
+        for (let x = g.currentMin; x <= g.currentMax; x++) out.push(x);
+        return out;
+      }
+
+      finishGame(answer, correct) {
+        const g = this.currentGame;
+        if (!g) return;
+
+        g.answer = answer;
+        g.correct = Boolean(correct);
+        g.ended = Date.now();
+
+        // learn from this round (use the *actual* answer always)
+        this.learnFromGame(g);
+
+        // Push a copy to history, then clear currentGame
+        this.gameHistory.push({ ...g });
+        this.currentGame = null;
+
+        // Update UI (result message)
+        const msg = correct
+          ? `<strong>🎉 Correct!</strong><br> The number was: <b>${answer}</b>`
+          : `<strong>❌ Wrong!</strong><br> The actual number was: <b>${answer}</b>`;
+
+        const usedQ = g.questionsAsked;
+        const neededQ = g.mathQuestionsNeeded;
+        const savedQ = Math.max(0, neededQ - usedQ);
+
+        document.getElementById('questionArea').innerHTML =
+          `${msg}<br>
+           Used <b>${usedQ}</b> questions (Math predicted <b>${neededQ}</b>).<br>
+           <strong>Saved ${savedQ} question(s).</strong>`;
+
+        document.getElementById('mlPrediction').style.display = 'none';
+
+        // After finishing, disable action buttons until next game
+        this.setButtons({ yes: false, no: false, confirm: false, wrong: false });
+
+        // Refresh dashboards
+        this.updateStats(g);  // pass the just-finished game so tiles show meaningful numbers
+        this.updateHistory();
+        this.updatePatterns();
+        this.saveData();
+      }
+
+      // --- learning rules (the ML “update step”) ---
+
+      learnFromGame(game) {
+        const answer = game.answer;
+
+        // A) Position preference within the *original* range
+        const span = game.max - game.min;
+        const decileKey = span > 0 ? Math.floor(((answer - game.min) / span) * 10) : 0;
+        this.patterns.positionPreferences[decileKey] =
+          (this.patterns.positionPreferences[decileKey] || 0) + 1;
+
+        // B) Lower vs upper half preference inside the *final narrowed* window (if we had one)
+        if (game.finalRange && game.finalRange.size > 1) {
+          const mid = (game.finalRange.min + game.finalRange.max) / 2;
+          const lower = answer < mid;
+          if (lower) this.patterns.halfPreferences.lower++;
+          else this.patterns.halfPreferences.upper++;
+        }
+
+        // C) Digital patterns: last digit, sum of digits, parity
+        const lastDigit = Math.abs(answer) % 10;
+        const sumDigits = Math.abs(answer).toString().split('').reduce((s, d) => s + Number(d), 0);
+
+        this.patterns.digitalPatterns[`lastDigit_${lastDigit}`] =
+          (this.patterns.digitalPatterns[`lastDigit_${lastDigit}`] || 0) + 1;
+
+        this.patterns.digitalPatterns[`digitSum_${sumDigits}`] =
+          (this.patterns.digitalPatterns[`digitSum_${sumDigits}`] || 0) + 1;
+
+        const parityKey = (answer % 2 === 0) ? 'even' : 'odd';
+        this.patterns.digitalPatterns[parityKey] =
+          (this.patterns.digitalPatterns[parityKey] || 0) + 1;
+      }
+
+      // --- dashboards, persistence, and helpers ---
+
+      updateStats(lastFinishedGame = null) {
+        // If a game is in progress, show that game’s counts.
+        // Otherwise, show the last finished game’s counts if provided.
+        let mathQ = 0, usedQ = 0;
+
+        if (this.currentGame) {
+          mathQ = this.currentGame.mathQuestionsNeeded;
+          usedQ = this.currentGame.questionsAsked;
+        } else if (lastFinishedGame) {
+          mathQ = lastFinishedGame.mathQuestionsNeeded;
+          usedQ = lastFinishedGame.questionsAsked;
+        }
+
+        const savedQ = Math.max(0, mathQ - usedQ);
+
+        document.getElementById('gamesPlayed').textContent = this.gameHistory.length;
+        document.getElementById('mathQuestions').textContent = mathQ;
+        document.getElementById('mlQuestions').textContent = usedQ;
+        document.getElementById('savedQuestions').textContent = savedQ;
+      }
+
+      updateHistory() {
+        const div = document.getElementById('historyList');
+        if (this.gameHistory.length === 0) {
+          div.innerHTML = 'No games played yet.';
+          return;
+        }
+
+        // Show up to last 12 games (most recent first)
+        const recent = this.gameHistory.slice(-12).reverse();
+        div.innerHTML = recent.map((g, idx) => {
+          const saved = Math.max(0, g.mathQuestionsNeeded - g.questionsAsked);
+          return `<div class="history-item">
+                    Game ${this.gameHistory.length - idx}:
+                    Range ${g.min}-${g.max},
+                    Answer: ${g.answer},
+                    Questions: ${g.questionsAsked}/${g.mathQuestionsNeeded}
+                    ${g.correct ? '✅' : '❌'}
+                    (Saved: ${saved})
+                  </div>`;
+        }).join('');
+      }
+
+      updatePatterns() {
+        const patternDiv = document.getElementById('patternInfo');
+
+        if (this.gameHistory.length === 0) {
+          patternDiv.innerHTML = 'No patterns learned yet. Play a few games!';
+          return;
+        }
+
+        let html = '<div style="font-size:0.95em;">';
+
+        // Half preference summary
+        const lower = this.patterns.halfPreferences.lower || 0;
+        const upper = this.patterns.halfPreferences.upper || 0;
+        const totalHalf = lower + upper;
+        if (totalHalf > 0) {
+          const lowerPct = Math.round((lower / totalHalf) * 100);
+          const upperPct = Math.round((upper / totalHalf) * 100);
+          html += `<strong>Half preference:</strong> Lower ${lowerPct}% (${lower}) vs Upper ${upperPct}% (${upper})<br>`;
+        }
+
+        // Position deciles: top 3
+        const deciles = Object.entries(this.patterns.positionPreferences)
+          .sort((a, b) => b[1] - a[1]).slice(0, 3);
+        if (deciles.length > 0) {
+          html += `<strong>Position deciles:</strong> `;
+          html += deciles.map(([k, c]) => `${Number(k)*10}–${(Number(k)+1)*10}% (${c}×)`).join(', ');
+          html += '<br>';
+        }
+
+        // Parity
+        const even = this.patterns.digitalPatterns.even || 0;
+        const odd = this.patterns.digitalPatterns.odd || 0;
+        html += `<strong>Parity:</strong> ${even >= odd ? 'Even' : 'Odd'} preferred (${even} vs ${odd})<br>`;
+
+        // Favorite last digits (top 3)
+        const lastDigits = Object.entries(this.patterns.digitalPatterns)
+          .filter(([k]) => k.startsWith('lastDigit_'))
+          .sort((a, b) => b[1] - a[1]).slice(0, 3);
+        if (lastDigits.length > 0) {
+          html += `<strong>Favorite last digits:</strong> `;
+          html += lastDigits.map(([k, c]) => `${k.split('_')[1]} (${c}×)`).join(', ');
+        }
+
+        html += '</div>';
+        patternDiv.innerHTML = html;
+      }
+
+      // Persist to localStorage (best-effort; guarded for environments without it)
+      saveData() {
+        try {
+          localStorage.setItem('mlgg_patterns', JSON.stringify(this.patterns));
+          localStorage.setItem('mlgg_history', JSON.stringify(this.gameHistory));
+        } catch (_) {
+          // ignore storage errors (private mode, disallowed, etc.)
+        }
+      }
+
+      loadData() {
+        try {
+          const p = localStorage.getItem('mlgg_patterns');
+          const h = localStorage.getItem('mlgg_history');
+          if (p) this.patterns = { ...this.patterns, ...JSON.parse(p) };
+          if (h) this.gameHistory = JSON.parse(h) || [];
+        } catch (_) {
+          // if parsing fails, keep defaults
+        }
+      }
+
+      // Helper to toggle button states in one place
+      setButtons({ yes, no, confirm, wrong }) {
+        document.getElementById('yesBtn').disabled = !yes;
+        document.getElementById('noBtn').disabled = !no;
+        document.getElementById('confirmBtn').disabled = !confirm;
+        document.getElementById('wrongBtn').disabled = !wrong;
+      }
+    }
+
+    // --- Wire the page-level functions the buttons call ---
+    const game = new MLGuessingGame();
+
+    function startGame() {
+      const min = Number(document.getElementById('minRange').value);
+      const max = Number(document.getElementById('maxRange').value);
+      const risk = Number(document.getElementById('riskLevel').value);
+      game.startGame(min, max, risk);
+    }
+
+    function respondYes()   { game.respondYes(); }
+    function respondNo()    { game.respondNo(); }
+    function confirmGuess() { game.confirmGuess(); }
+    function wrongGuess()   { game.wrongGuess(); }
+  </script>
+</body>
+</html>
